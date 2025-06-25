@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✈ Aircraft Overhead Tracker</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            background: #000;
+            color: #00ff41;
+            padding: 20px;
+            min-height: 100vh;
+            text-shadow: 0 0 5px #00ff41;
+        }
+        
+        .header {
+            text-align: center;
+            border: 2px solid #00ff41;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: rgba(0, 255, 65, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        
+        .status-item {
+            padding: 8px 12px;
+            border: 1px solid #00ff41;
+            background: rgba(0, 255, 65, 0.05);
+            text-align: center;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: #000;
+            color: #00ff41;
+            border: 2px solid #00ff41;
+            padding: 8px 16px;
+            font-family: inherit;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: rgba(0, 255, 65, 0.1);
+            box-shadow: 0 0 10px #00ff41;
+        }
+        
+        .aircraft-grid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            padding: 20px;
+        }
+        
+        .aircraft-card {
+            border: 2px solid #00ff41;
+            padding: 30px;
+            background: rgba(0, 255, 65, 0.05);
+            position: relative;
+            transition: all 0.3s ease;
+            width: 600px;
+            max-width: 90vw;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+        
+        .aircraft-card:hover {
+            background: rgba(0, 255, 65, 0.1);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+        }
+        
+        .aircraft-card.emergency {
+            border-color: #ff0000;
+            color: #ff0000;
+            animation: pulse 1s infinite;
+        }
+        
+        .aircraft-card.closest {
+            border-color: #ffff00;
+            box-shadow: 0 0 20px rgba(255, 255, 0, 0.5);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .loading {
+            text-align: center;
+            font-size: 18px;
+            padding: 40px;
+            border: 1px solid #00ff41;
+        }
+        
+        .loading-dots .dot1 {
+            animation: loadingDots 2s infinite;
+        }
+        
+        .loading-dots .dot2 {
+            animation: loadingDots 2s infinite;
+            animation-delay: 0.5s;
+        }
+        
+        .loading-dots .dot3 {
+            animation: loadingDots 2s infinite;
+            animation-delay: 1s;
+        }
+        
+        @keyframes loadingDots {
+            0%, 20% { opacity: 0; }
+            25%, 50% { opacity: 1; }
+            55%, 100% { opacity: 0; }
+        }
+        
+        .error {
+            color: #ff0000;
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #ff0000;
+            background: rgba(255, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .no-aircraft {
+            text-align: center;
+            padding: 60px;
+            border: 2px solid #00ff41;
+            background: rgba(0, 255, 65, 0.05);
+            font-size: 1.3em;
+            width: 600px;
+            max-width: 90vw;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+        
+        .aircraft-title {
+            font-size: 1.6em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(0, 255, 65, 0.3);
+            padding-bottom: 10px;
+            text-align: center;
+            font-weight: 700;
+        }
+        
+        .aircraft-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            font-size: 1.1em;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+        }
+        
+        .detail-label {
+            opacity: 0.8;
+        }
+        
+        .detail-value {
+            font-weight: 700;
+        }
+        
+        @media (max-width: 768px) {
+            .status-bar {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .aircraft-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✈ AIRCRAFT OVERHEAD TRACKER ✈</h1>
+        <p>REAL-TIME ADS-B SURVEILLANCE SYSTEM</p>
+    </div>
+
+    <div class="status-bar">
+        <div class="status-item">
+            STATUS: <span id="status">INITIALIZING...</span>
+        </div>
+        <div class="status-item">
+            LOCATION: <span id="location">DETECTING...</span>
+        </div>
+        <div class="status-item">
+            LAST UPDATE: <span id="timestamp">--:--:--</span>
+        </div>
+        <div class="status-item">
+            NEXT REFRESH: <span id="countdown">--</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="refreshNow()">REFRESH NOW</button>
+    </div>
+
+    <div id="loading" class="loading">
+        SCANNING AIRSPACE<span class="loading-dots"><span class="dot1">.</span><span class="dot2">.</span><span class="dot3">.</span></span>
+    </div>
+
+    <div id="error" class="error" style="display: none;"></div>
+
+    <div id="aircraft-grid" class="aircraft-grid"></div>
+
+    <script>
+        // Configuration
+        let userLat = null;
+        let userLon = null;
+        let currentRange = 0.045; // degrees (≈5km) - closer overhead flights only
+        let updateInterval;
+        let countdownInterval;
+        let nextRefreshTime;
+
+        // Start the aircraft tracker
+        async function startTracking() {
+            try {
+                await getLocation();
+                updateStatus('ONLINE', '00ff41');
+                await fetchAircraftData();
+                
+                // Auto-refresh every 30 seconds (2,880 calls/day, leaves 1,120 credits)
+                updateInterval = setInterval(fetchAircraftData, 30000);
+                startCountdown();
+                console.log('🔄 Auto-refresh enabled: every 30 seconds');
+            } catch (error) {
+                showError(`INITIALIZATION ERROR: ${error.message}`);
+            }
+        }
+
+        // Get user's GPS location
+        async function getLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation not supported'));
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        userLat = position.coords.latitude;
+                        userLon = position.coords.longitude;
+                        updateLocationDisplay();
+                        resolve();
+                    },
+                    error => {
+                        // Fallback to Coogee if location fails
+                        userLat = -33.9185;
+                        userLon = 151.2532;
+                        updateLocationDisplay('COOGEE (DEFAULT)');
+                        resolve();
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 300000
+                    }
+                );
+            });
+        }
+
+        // Fetch aircraft data from your server
+        async function fetchAircraftData() {
+            try {
+                console.log('🛩️ Fetching aircraft data...');
+                
+                const params = new URLSearchParams({
+                    lat: userLat,
+                    lon: userLon,
+                    range: currentRange
+                });
+                
+                try {
+                    const response = await fetch(`/.netlify/functions/simple-test?${params}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        displayAircraft(data.aircraft);
+                        updateTimestamp();
+                        hideLoading();
+                        hideError();
+                        return;
+                    }
+                } catch (functionError) {
+                    console.log('⚠️ Function failed, using mock data:', functionError.message);
+                }
+
+                // Fallback to mock data if function fails
+                const mockData = {
+                    success: true,
+                    aircraft: [{
+                        icao24: 'mock01',
+                        callsign: 'MOCK001',
+                        origin_country: 'Australia',
+                        latitude: -33.919,
+                        longitude: 151.249,
+                        altitude_ft: 35000,
+                        speed_kts: 450,
+                        true_track: 90,
+                        distance: 2.5,
+                        phase: 'CRUISE',
+                        route: { from: 'FALLBACK MODE', to: 'TESTING' },
+                        squawk: '2000'
+                    }]
+                };
+
+                displayAircraft(mockData.aircraft);
+                updateTimestamp();
+                hideLoading();
+                hideError();
+                updateStatus('ONLINE (MOCK)', '00ff00');
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showError(`CONNECTION ERROR: ${error.message}`);
+                updateStatus('OFFLINE', 'ff0000');
+            }
+        }
+
+        // Display aircraft in retro terminal style (only show closest one)
+        function displayAircraft(aircraft) {
+            const grid = document.getElementById('aircraft-grid');
+            
+            if (aircraft.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-aircraft">
+                        <h3>NO AIRCRAFT DETECTED</h3>
+                        <p>AIRSPACE CLEAR • CONTINUING SCAN...</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Show only the first (closest) aircraft
+            const plane = aircraft[0];
+            grid.innerHTML = `
+                <div class="aircraft-card ${plane.squawk === '7700' ? 'emergency' : ''} closest">
+                    <div class="aircraft-title">
+                        ${plane.callsign || 'UNKNOWN'} • ${plane.icao24?.toUpperCase()} • OVERHEAD
+                    </div>
+                    <div class="aircraft-details">
+                        <div class="detail-item">
+                            <span class="detail-label">ALTITUDE:</span>
+                            <span class="detail-value">${plane.altitude_ft ? plane.altitude_ft + ' ft' : 'UNKNOWN'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">SPEED:</span>
+                            <span class="detail-value">${plane.speed_kts ? plane.speed_kts + ' kts' : 'UNKNOWN'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">HEADING:</span>
+                            <span class="detail-value">${plane.true_track ? Math.round(plane.true_track) + '°' : 'UNKNOWN'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">DISTANCE:</span>
+                            <span class="detail-value">${plane.distance} km</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">COUNTRY:</span>
+                            <span class="detail-value">${plane.origin_country || 'UNKNOWN'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">STATUS:</span>
+                            <span class="detail-value">${plane.phase}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">ORIGIN:</span>
+                            <span class="detail-value">${plane.route.from}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">DEST:</span>
+                            <span class="detail-value">${plane.route.to}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">SQUAWK:</span>
+                            <span class="detail-value">${plane.squawk || 'N/A'}</span>
+                        </div>
+                    </div>
+                    ${plane.squawk === '7700' ? '<div style="margin-top: 10px; color: #ff0000; font-weight: bold;">⚠️ EMERGENCY SQUAWK</div>' : ''}
+                </div>
+            `;
+        }
+
+        // Helper functions
+        function updateStatus(status, color) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = status;
+            statusEl.style.color = `#${color}`;
+        }
+
+
+
+        function updateLocationDisplay(customText) {
+            const locationEl = document.getElementById('location');
+            if (customText) {
+                locationEl.textContent = customText;
+            } else if (userLat && userLon) {
+                locationEl.textContent = `${userLat.toFixed(3)}, ${userLon.toFixed(3)}`;
+            }
+        }
+
+        function updateTimestamp() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('en-AU', { 
+                hour12: false 
+            });
+            document.getElementById('timestamp').textContent = time;
+        }
+
+        function startCountdown() {
+            // Clear any existing countdown
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            // Set next refresh time
+            nextRefreshTime = Date.now() + 30000; // 30 seconds from now
+            
+            // Update countdown every second
+            countdownInterval = setInterval(updateCountdown, 1000);
+            updateCountdown(); // Update immediately
+        }
+
+        function updateCountdown() {
+            const now = Date.now();
+            const timeLeft = Math.max(0, Math.ceil((nextRefreshTime - now) / 1000));
+            
+            if (timeLeft > 0) {
+                document.getElementById('countdown').textContent = `${timeLeft}s`;
+            } else {
+                document.getElementById('countdown').textContent = 'NOW';
+                // Reset for next cycle
+                nextRefreshTime = Date.now() + 30000;
+            }
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function showMessage(message) {
+            const grid = document.getElementById('aircraft-grid');
+            grid.innerHTML = `
+                <div class="no-aircraft">
+                    <h3>AIRCRAFT TRACKER READY</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function refreshNow() {
+            // Clear any existing intervals to prevent multiple timers
+            if (updateInterval) clearInterval(updateInterval);
+            
+            // Fetch data immediately
+            fetchAircraftData();
+            
+            // Restart the 30-second auto-refresh cycle
+            updateInterval = setInterval(fetchAircraftData, 30000);
+            startCountdown();
+            console.log('🔄 Manual refresh completed. Auto-refresh continues every 30 seconds.');
+        }
+
+        // Update location function for the button
+        async function updateLocation() {
+            try {
+                await getLocation();
+                await fetchAircraftData(); // Refresh data with new location
+            } catch (error) {
+                showError(`LOCATION ERROR: ${error.message}`);
+            }
+        }
+
+        // Start tracking when page loads
+        window.addEventListener('load', startTracking);
+    </script>
+</body>
+</html>
