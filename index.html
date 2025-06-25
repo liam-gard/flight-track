@@ -75,6 +75,13 @@
             background: rgba(0, 255, 65, 0.1);
             box-shadow: 0 0 10px #00ff41;
         }
+
+        .btn:active,
+        .btn.scanning {
+            background: rgba(0, 255, 65, 0.3);
+            transform: scale(0.98);
+            box-shadow: 0 0 25px rgba(0, 255, 65, 0.8);
+        }
         
         .aircraft-grid {
             display: flex;
@@ -141,6 +148,124 @@
             0%, 20% { opacity: 0; }
             25%, 50% { opacity: 1; }
             55%, 100% { opacity: 0; }
+        }
+
+        /* Radar scan animation */
+        .radar-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            display: none;
+        }
+
+        .radar-container.active {
+            display: block;
+        }
+
+        .radar-screen {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #00ff41;
+            border-radius: 50%;
+            position: relative;
+            background: radial-gradient(circle, rgba(0,255,65,0.1) 0%, rgba(0,255,65,0.05) 50%, transparent 70%);
+        }
+
+        .radar-grid {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+        }
+
+        .radar-grid::before,
+        .radar-grid::after {
+            content: '';
+            position: absolute;
+            background: #00ff41;
+            opacity: 0.3;
+        }
+
+        .radar-grid::before {
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            transform: translateY(-50%);
+        }
+
+        .radar-grid::after {
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            transform: translateX(-50%);
+        }
+
+        .radar-sweep {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 2px;
+            height: 90px;
+            background: linear-gradient(to top, #00ff41, transparent);
+            transform-origin: bottom center;
+            transform: translate(-50%, -90px) rotate(0deg);
+            animation: radarSweep 2.5s linear;
+            box-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41;
+        }
+
+        @keyframes radarSweep {
+            0% { transform: translate(-50%, -90px) rotate(0deg); opacity: 1; }
+            100% { transform: translate(-50%, -90px) rotate(360deg); opacity: 1; }
+        }
+
+        .radar-blip {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #00ff41;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #00ff41;
+            animation: radarBlip 2.5s ease-in-out;
+        }
+
+        .radar-blip:nth-child(1) {
+            top: 30%;
+            left: 60%;
+            animation-delay: 0.8s;
+        }
+
+        .radar-blip:nth-child(2) {
+            top: 70%;
+            left: 40%;
+            animation-delay: 1.2s;
+        }
+
+        .radar-blip:nth-child(3) {
+            top: 45%;
+            left: 75%;
+            animation-delay: 1.6s;
+        }
+
+        @keyframes radarBlip {
+            0%, 70% { opacity: 0; transform: scale(0); }
+            80% { opacity: 1; transform: scale(1.5); }
+            90% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+
+        .radar-text {
+            text-align: center;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
         
         .error {
@@ -237,6 +362,17 @@
 
     <div id="loading" class="loading">
         SCANNING AIRSPACE<span class="loading-dots"><span class="dot1">.</span><span class="dot2">.</span><span class="dot3">.</span></span>
+    </div>
+
+    <div id="radar-container" class="radar-container">
+        <div class="radar-screen">
+            <div class="radar-grid"></div>
+            <div class="radar-sweep"></div>
+            <div class="radar-blip"></div>
+            <div class="radar-blip"></div>
+            <div class="radar-blip"></div>
+        </div>
+        <div class="radar-text">SCANNING FOR AIRCRAFT</div>
     </div>
 
     <div id="error" class="error" style="display: none;"></div>
@@ -548,13 +684,42 @@
             // Clear any existing intervals to prevent multiple timers
             if (updateInterval) clearInterval(updateInterval);
             
-            // Fetch data immediately
-            fetchAircraftData();
+            // Show radar animation
+            showRadarAnimation();
+            
+            // Fetch data after a short delay to let animation start
+            setTimeout(() => {
+                fetchAircraftData();
+            }, 100);
             
             // Restart the 30-second auto-refresh cycle
             updateInterval = setInterval(fetchAircraftData, 30000);
             startCountdown();
             console.log('🔄 Manual refresh completed. Auto-refresh continues every 30 seconds.');
+        }
+
+        function showRadarAnimation() {
+            const radarContainer = document.getElementById('radar-container');
+            const aircraftGrid = document.getElementById('aircraft-grid');
+            const loading = document.getElementById('loading');
+            const refreshBtn = document.querySelector('.btn');
+            
+            // Hide other elements
+            aircraftGrid.style.display = 'none';
+            loading.style.display = 'none';
+            
+            // Show radar and update button
+            radarContainer.classList.add('active');
+            refreshBtn.classList.add('scanning');
+            refreshBtn.textContent = 'SCANNING...';
+            
+            // Hide radar after animation completes
+            setTimeout(() => {
+                radarContainer.classList.remove('active');
+                aircraftGrid.style.display = 'block';
+                refreshBtn.classList.remove('scanning');
+                refreshBtn.textContent = 'REFRESH NOW';
+            }, 2500);
         }
 
         // Update location function for the button
