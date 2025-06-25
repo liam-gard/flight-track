@@ -403,7 +403,7 @@
                 updateStatus('ONLINE', '00ff41');
                 
                 // Auto-refresh every 30 seconds (2,880 calls/day, leaves 1,120 credits)
-                updateInterval = setInterval(fetchAircraftData, 30000);
+                updateInterval = setInterval(() => fetchAircraftData(true), 30000);
                 startCountdown();
                 console.log('🔄 Auto-refresh enabled: every 30 seconds');
             } catch (error) {
@@ -473,7 +473,12 @@
         }
 
         // Fetch aircraft data from your server
-        async function fetchAircraftData() {
+        async function fetchAircraftData(showRadar = false) {
+            if (showRadar) {
+                showRadarAnimation();
+                // Delay the actual fetch to let animation start
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
             try {
                 console.log('🛩️ Fetching aircraft data...');
                 
@@ -684,16 +689,11 @@
             // Clear any existing intervals to prevent multiple timers
             if (updateInterval) clearInterval(updateInterval);
             
-            // Show radar animation
-            showRadarAnimation();
+            // Fetch data with radar animation
+            fetchAircraftData(true);
             
-            // Fetch data after a short delay to let animation start
-            setTimeout(() => {
-                fetchAircraftData();
-            }, 100);
-            
-            // Restart the 30-second auto-refresh cycle
-            updateInterval = setInterval(fetchAircraftData, 30000);
+            // Restart the 30-second auto-refresh cycle with radar animation
+            updateInterval = setInterval(() => fetchAircraftData(true), 30000);
             startCountdown();
             console.log('🔄 Manual refresh completed. Auto-refresh continues every 30 seconds.');
         }
