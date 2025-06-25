@@ -716,7 +716,7 @@
             // Hide radar after animation completes
             setTimeout(() => {
                 radarContainer.classList.remove('active');
-                aircraftGrid.style.display = 'block';
+                aircraftGrid.style.display = 'flex'; // Restore flex display for centering
                 refreshBtn.classList.remove('scanning');
                 refreshBtn.textContent = 'REFRESH NOW';
             }, 2500);
