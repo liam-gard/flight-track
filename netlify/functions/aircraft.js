@@ -52,14 +52,33 @@ exports.handler = async (event, context) => {
         
         console.log(`📡 Calling OpenSky API: ${apiUrl}`);
         
-        const auth = Buffer.from(`${username}:${password}`).toString('base64');
-        const response = await fetch(apiUrl, {
-            headers: {
-                'Authorization': `Basic ${auth}`,
-                'User-Agent': 'Aircraft-Tracker/1.0'
-            },
-            timeout: 10000
-        });
+        let response;
+        
+        // Try authenticated request first
+        try {
+            const auth = Buffer.from(`${username}:${password}`).toString('base64');
+            response = await fetch(apiUrl, {
+                headers: {
+                    'Authorization': `Basic ${auth}`,
+                    'User-Agent': 'Aircraft-Tracker/1.0'
+                },
+                timeout: 10000
+            });
+            
+            if (response.status === 401) {
+                console.log('⚠️ Authentication failed, trying unauthenticated request...');
+                throw new Error('Auth failed');
+            }
+        } catch (authError) {
+            // Fallback to unauthenticated request
+            console.log('📡 Using unauthenticated API request...');
+            response = await fetch(apiUrl, {
+                headers: {
+                    'User-Agent': 'Aircraft-Tracker/1.0'
+                },
+                timeout: 10000
+            });
+        }
 
         if (response.status === 429) {
             throw new Error('Rate limit exceeded - try again later');
