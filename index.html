@@ -255,16 +255,53 @@
         // Start the aircraft tracker
         async function startTracking() {
             try {
+                console.log('🚀 Starting aircraft tracker...');
+                updateStatus('GETTING LOCATION...', 'ffff00');
+                
                 await getLocation();
-                updateStatus('ONLINE', '00ff41');
+                console.log('📍 Location acquired');
+                updateStatus('CONNECTING...', 'ffff00');
+                
                 await fetchAircraftData();
+                console.log('✅ Initial data fetch complete');
+                updateStatus('ONLINE', '00ff41');
                 
                 // Auto-refresh every 30 seconds (2,880 calls/day, leaves 1,120 credits)
                 updateInterval = setInterval(fetchAircraftData, 30000);
                 startCountdown();
                 console.log('🔄 Auto-refresh enabled: every 30 seconds');
             } catch (error) {
+                console.error('❌ Startup error:', error);
                 showError(`INITIALIZATION ERROR: ${error.message}`);
+                updateStatus('ERROR', 'ff0000');
+                
+                // Try to show mock data anyway
+                try {
+                    console.log('🔄 Attempting fallback to mock data...');
+                    const mockData = {
+                        success: true,
+                        aircraft: [{
+                            icao24: 'fallback',
+                            callsign: 'INIT_ERR',
+                            origin_country: 'Australia',
+                            latitude: -33.919,
+                            longitude: 151.249,
+                            altitude_ft: 35000,
+                            speed_kts: 450,
+                            true_track: 90,
+                            distance: 2.5,
+                            phase: 'CRUISE',
+                            route: { from: 'INIT ERROR', to: 'FALLBACK' },
+                            squawk: '2000'
+                        }]
+                    };
+                    displayAircraft(mockData.aircraft);
+                    updateTimestamp();
+                    hideLoading();
+                    updateStatus('OFFLINE (FALLBACK)', 'ff8800');
+                } catch (fallbackError) {
+                    console.error('❌ Even fallback failed:', fallbackError);
+                }
             }
         }
 
@@ -311,15 +348,26 @@
                 });
                 
                 try {
+                    console.log('📡 Calling Netlify function...');
                     const response = await fetch(`/.netlify/functions/aircraft?${params}`);
+                    console.log('📡 Response status:', response.status);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
                     const data = await response.json();
+                    console.log('📡 Function response:', data);
 
                     if (data.success) {
                         displayAircraft(data.aircraft);
                         updateTimestamp();
                         hideLoading();
                         hideError();
+                        updateStatus('ONLINE', '00ff41');
                         return;
+                    } else {
+                        throw new Error(data.error || 'Function returned unsuccessful response');
                     }
                 } catch (functionError) {
                     console.log('⚠️ Function failed, using mock data:', functionError.message);
